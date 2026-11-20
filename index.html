@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Praga">
+<meta name="theme-color" content="#0f3d2e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<title>Praga en Navidad · Guía en ruta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Gelasio:ital,wght@0,600;1,600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--red:#a31f2b;--green:#0f3d2e;--gold:#e0b44e;--cream:#fbf7ef;--ink:#17202f;--muted:#5b6475}
+*{box-sizing:border-box}
+body{margin:0;font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-tap-highlight-color:transparent}
+header{padding-top:max(16px,env(safe-area-inset-top))!important;background:linear-gradient(160deg,#0f3d2e,#0b2a20 60%,#3a0f1b);color:#fff;padding:16px 16px 12px;position:sticky;top:0;z-index:20;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-family:Gelasio,serif;font-size:22px;margin:0}
+h1 i{color:var(--gold)}
+.clock{font-weight:800;font-size:20px;color:var(--gold);text-align:right;line-height:1}
+.clock small{display:block;font-size:10px;color:#cfd8d3;font-weight:600;margin-top:3px}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{flex:1;min-width:68px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:7px 4px;font:700 12px Montserrat;text-align:center;cursor:pointer}
+.tab b{display:block;font-size:15px}
+.tab.on{background:var(--gold);color:#3a2800;border-color:var(--gold)}
+.prog{height:6px;background:rgba(255,255,255,.18);border-radius:6px;margin-top:10px;overflow:hidden}
+.prog div{height:100%;background:linear-gradient(90deg,#e0b44e,#f6dc8f);width:0;transition:width .4s}
+.plab{font-size:11px;color:#d8e2dc;margin-top:4px;display:flex;justify-content:space-between}
+main{padding:14px 14px 90px;max-width:640px;margin:0 auto}
+.now{background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 8px 26px rgba(70,40,10,.12);border-top:5px solid var(--red);margin-bottom:14px}
+.now .k{font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--red)}
+.now h2{font-family:Gelasio,serif;font-size:22px;margin:4px 0 2px}
+.now .meta{font-size:13px;color:var(--muted)}
+.status{margin:10px 0;padding:9px 12px;border-radius:12px;font-weight:700;font-size:13.5px}
+.status.ok{background:#e6f2ea;color:#0f3d2e}.status.late{background:#fde8e6;color:#8f1d27}.status.early{background:#fff5dc;color:#6a4b00}.status.info{background:#eef1f6;color:#33405a}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;border:0;border-radius:12px;padding:12px 10px;font:800 14px Montserrat;cursor:pointer;text-align:center;text-decoration:none;display:inline-block}
+.btn.go{background:var(--green);color:#fff}.btn.done{background:var(--gold);color:#3a2800}.btn.skip{background:#eee6d6;color:#3a3020;flex:0 0 auto;min-width:0;padding:12px 14px}
+.tips{font-size:13px;margin:8px 0 10px;color:#2c3445;line-height:1.45}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 0 #eadfc8;padding:12px;margin-bottom:14px}
+.card h3{margin:2px 4px 8px;font-family:Gelasio,serif;font-size:17px;color:var(--green)}
+#lmap{height:360px;border-radius:12px;z-index:1}
+.pin{width:26px;height:26px;border-radius:50%;color:#fff;font:800 12px Montserrat,sans-serif;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.me{width:16px;height:16px;border-radius:50%;background:#2a7de1;border:3px solid #fff;box-shadow:0 0 0 6px rgba(42,125,225,.25)}
+svg{width:100%;height:auto;display:block;border-radius:12px;background:#f3ecdc}
+.mapnote{font-size:11px;color:var(--muted);margin:6px 4px 0}
+.st{display:grid;grid-template-columns:52px 1fr;gap:10px;background:#fff;border-radius:14px;padding:11px 12px;margin-bottom:9px;box-shadow:0 2px 0 #eadfc8;position:relative;transition:opacity .3s}
+.st.done{opacity:.55}.st.done .tt{text-decoration:line-through}
+.st.next{outline:2.5px solid var(--gold);box-shadow:0 6px 18px rgba(224,180,78,.35)}
+.tm{font-weight:800;color:var(--red);font-size:15px}
+.num{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-top:5px}
+.tt{font-weight:800;font-size:15px}
+.nt{font-size:12.5px;color:#3c4558;margin-top:3px;line-height:1.4}
+.row{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--green);background:#e8f1ec;border-radius:10px;padding:6px 10px;cursor:pointer;border:0;font-family:inherit}
+.st.done .chk{background:var(--gold);color:#3a2800}
+.lnk{font-size:12.5px;font-weight:700;color:var(--red);text-decoration:none;background:#fbe9e7;border-radius:10px;padding:6px 10px}
+.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:5px;vertical-align:2px}
+.t-mk{background:var(--red);color:#fff}.t-eu{background:var(--gold);color:#3a2800}.t-res{background:#17202f;color:#fff}.t-free{background:var(--green);color:#fff}.t-opt{background:#ddd3bf;color:#3a3020}
+.sim{font-size:12px;color:var(--muted);background:#fff;border-radius:14px;padding:10px 12px;margin-bottom:14px;box-shadow:0 2px 0 #eadfc8}
+.sim summary{font-weight:800;color:var(--green);cursor:pointer}
+.sim label{display:flex;align-items:center;gap:8px;margin-top:8px}
+.sim input[type=range]{flex:1}
+.sync{font-size:11px;color:#cfd8d3}
+.reset{background:none;border:0;color:var(--red);font:700 12px Montserrat;cursor:pointer;padding:6px 0}
+.snow{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.snow span{position:absolute;top:-10px;color:#fff;opacity:.6;animation:fall linear infinite;text-shadow:0 0 2px #c9d6e3}
+@keyframes fall{to{transform:translateY(105vh)}}
+main,header{position:relative;z-index:1}
+@keyframes pulse{0%{r:11}50%{r:17}100%{r:11}}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+</style>
+</head>
+<body>
+<div class="snow" id="snow"></div>
+<header>
+  <div class="hrow">
+    <h1>Praga en <i>Navidad</i></h1>
+    <div class="clock"><span id="clk">--:--</span><small id="clkd">hora de Praga</small></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="prog"><div id="bar"></div></div>
+  <div class="plab"><span id="plab"></span><span class="sync" id="sync">guardado en este móvil</span></div>
+</header>
+<main>
+  <details class="sim" id="simbox"><summary>⏱️ Probar la app antes del viaje</summary>
+    <label><input type="checkbox" id="simon"> Simular la hora</label>
+    <label>Hora: <input type="range" id="simt" min="360" max="1380" step="5" value="960"><b id="simv">16:00</b></label>
+    <div style="margin-top:6px">Con la simulación activada, la app hace como si fuera esa hora del día que tengas abierto.</div>
+  </details>
+  <section class="now" id="now"></section>
+  <section class="card"><h3 id="maptitle">Mapa del día</h3><div id="map"></div>
+    <div class="mapnote" id="mapnote">Números = orden del día · dorado = siguiente · punto azul = vosotros. Para la ruta exacta, «Cómo llegar».</div></section>
+  <section id="list"></section>
+  <button class="reset" id="reset">Desmarcar todo el día</button>
+</main>
+<script>
+const DAYS=[
+ {id:"d1",date:"2026-12-08",tab:"Mar 8",title:"Día 1 · Bienvenida navideña"},
+ {id:"d2",date:"2026-12-09",tab:"Mié 9",title:"Día 2 · Ciudad Vieja y Vinohrady"},
+ {id:"d3",date:"2026-12-10",tab:"Jue 10",title:"Día 3 · Castillo, río y farolero"},
+ {id:"d4",date:"2026-12-11",tab:"Vie 11",title:"Día 4 · Rumbo a Viena"}];
+// t, title, notes, lat, lng, mode, tag, nomap
+const S={
+d1:[
+ ["12:50","Aterrizaje · billetes PID","App PID Lítačka: billete 90 min (46 CZK) por persona + 23 CZK de maleta grande. Actívalos antes de subir.",50.1008,14.2600,"transit",null,1],
+ ["13:30","Trolebús 59 + metro A","Trolebús 59 hasta la última parada (Nádraží Veleslavín) y metro A hasta Můstek o Muzeum.",50.0838,14.4246,"transit",null,1],
+ ["14:30","Comida tardía · Lokál U Jiráta","Si no os dejan entrar antes de las 16:00, comed aquí con las maletas, a 3 min del apartamento.",50.0806,14.4229,"walking",null],
+ ["16:00","Entrada al apartamento","Štěpánská 27. Dejar cosas y abrigarse.",50.0786,14.4256,"walking",null],
+ ["16:20","Mercado de Wenceslao","Parte baja, ya de noche. Cabina de fotos vintage en Pasáž U Nováků (~5 €). Luego por Na Příkopě.",50.0838,14.4246,"walking","mk"],
+ ["17:05","Mercado de Náměstí Republiky","Torre de la Pólvora y Casa Municipal. Cabina de Kampus Hybernská a 2 min. Cierra a las 20:00.",50.0880,14.4289,"walking","mk"],
+ ["17:50","Plaza de la Ciudad Vieja","Árbol gigante y Reloj Astronómico: espectáculo a las 18:00. Mochila delante.",50.0875,14.4213,"walking","mk"],
+ ["18:45","Puente de Carlos de noche","Por la calle Karlova con un svařák. El castillo iluminado al fondo: id hasta la mitad y volved.",50.0865,14.4114,"walking","free"],
+ ["19:30","Cena en Krčma","Kostečná 4, a la luz de las velas. Plan B: Lokál Dlouhá.",50.0893,14.4192,"walking","res"],
+ ["21:15","Copa en U Sudu (opcional)","Sótanos laberinto en Vodičkova 10. Solo efectivo.",50.0817,14.4205,"walking","opt"]],
+d2:[
+ ["7:05","Salida de casa","Café y bollería en una panadería (pekařství) de camino. 25 min andando al río.",50.0786,14.4256,"walking",null],
+ ["7:30","Puente de Carlos al amanecer","Amanece hacia las 7:50. Antes, la foto desde la escalera junto a Karlovy Lázně.",50.0858,14.4128,"walking","free"],
+ ["8:00","Klementinum (−50 %)","Visita de las 8:00 en inglés: 190 CZK en vez de 380. Entrada por Mariánské náměstí 5 o Karlova 1.",50.0864,14.4163,"walking","eu"],
+ ["9:00","Torre del Ayuntamiento (−50 %)","150 CZK si entráis antes de las 10:00. El mercado visto desde arriba.",50.0870,14.4207,"walking","eu"],
+ ["10:00","Reloj Astronómico","Espectáculo en punto, desde abajo.",50.0869,14.4206,"walking",null],
+ ["10:15","Desayuno de verdad","En Dlouhá o Rámová, no en la plaza.",50.0890,14.4230,"walking",null],
+ ["11:00","Torre infinita de libros","Biblioteca Municipal, gratis. Puerta de la derecha.",50.0873,14.4178,"walking","free"],
+ ["11:30","Barrio judío por fuera","Pařížská, Sinagoga Española y estatua de Kafka.",50.0902,14.4202,"walking","free"],
+ ["12:45","Comida en Lokál Dlouhá","Cocina checa y cerveza de tanque. Alternativa: Naše Maso (Dlouhá 39).",50.0904,14.4253,"walking",null],
+ ["14:30","Grébovka y La Grotta","Metro A hasta Náměstí Míru y 12 min andando. Viñedo, escaleras y gruta.",50.0690,14.4475,"transit","free"],
+ ["15:45","Mercado de Jiřího z Poděbrad","El más local y barato. Cierra a las 18:00.",50.0779,14.4501,"transit","mk"],
+ ["16:25","Mirador de Riegrovy sady","La hora azul con el castillo al fondo.",50.0803,14.4420,"walking","free"],
+ ["16:50","Mercado de Náměstí Míru","Frente a Santa Ludmila.",50.0753,14.4378,"walking","mk"],
+ ["17:45","Mercado de Tylovo náměstí","Pequeño y vecinal, de camino a casa.",50.0749,14.4318,"walking","mk"],
+ ["18:30","Cena en Vinohradský pivovar","Korunní 106. Plan B: Lokál (Korunní 39).",50.0747,14.4558,"transit",null],
+ ["20:15","Vuelta a casa","Metro o tranvía a I. P. Pavlova.",50.0786,14.4256,"transit",null]],
+d3:[
+ ["7:30","Desayuno cerca de Národní třída","Algo rápido: a las 8:00 toca la cabeza de Kafka.",50.0818,14.4195,"walking",null],
+ ["8:00","Cabeza de Kafka + tranvía 22","Centro Quadrio, gira a la hora en punto. Tranvía 22 hasta Pohořelec.",50.0818,14.4198,"walking","free"],
+ ["8:30","Mirador de Strahov","Gratis, con luz de mañana.",50.0862,14.3917,"transit","free"],
+ ["9:00","Biblioteca de Strahov","220 CZK, 40 min.",50.0860,14.3894,"walking",null],
+ ["10:15","Castillo de Praga","Circuito 450 CZK. Los interiores cierran a las 16:00.",50.0905,14.4003,"walking",null],
+ ["12:00","Cambio de guardia","Con fanfarria, en el primer patio.",50.0903,14.3976,"walking","free"],
+ ["12:20","Mirador de Opyš y Escalera Vieja","Bajada por la puerta este.",50.0920,14.4058,"walking","free"],
+ ["12:45","Comida en U Glaubiců","Guláš en pan. Malostranské náměstí.",50.0879,14.4040,"walking",null],
+ ["13:45","Malá Strana y Vinárna Čertovka","San Nicolás, Vojanovy sady y la calle más estrecha, con semáforo.",50.0866,14.4100,"walking","free"],
+ ["14:05","Kampa y Muro de Lennon","Mercado bajo el puente y nutrias del río.",50.0856,14.4082,"walking","mk"],
+ ["14:35","Hacia el muelle 3B","Cruzar el puente y seguir la orilla hasta el final de Pařížská. 20 min antes.",50.0918,14.4170,"walking",null],
+ ["15:00","Crucero al atardecer","Prague Boats, muelle 3B junto al puente Čech. 1 hora, con calefacción.",50.0918,14.4170,"walking","res"],
+ ["16:15","El farolero del puente","Empieza a las 16:05 en Křižovnické náměstí; lo pilláis a la vuelta.",50.0864,14.4147,"walking","free"],
+ ["17:00","Mercado de Holešovice","Diseño local; los jueves, cine navideño.",50.0988,14.4470,"transit","mk"],
+ ["18:10","Ciudad Vieja de noche + U Prince","Copa opcional con la plaza a vuestros pies.",50.0865,14.4206,"transit","opt"],
+ ["19:45","Cena en Pork's Vodičkova","Codillo para compartir. Reserva.",50.0812,14.4219,"walking","res"],
+ ["21:30","Vzorkovna, el bar del perro (opcional)","Tarjeta que se carga en efectivo. O U Sudu.",50.0818,14.4172,"walking","opt"]],
+d4:[
+ ["7:00","Desayuno cerca de casa","Sin prisas.",50.0786,14.4256,"walking",null],
+ ["7:40","Plaza de Wenceslao vacía","Último paseo con el Museo Nacional al fondo.",50.0805,14.4280,"walking","free"],
+ ["8:05","A Praha hlavní nádraží","10–12 min andando con las maletas. Agua en el súper de la estación.",50.0832,14.4353,"walking",null],
+ ["8:36","Railjet a Viena","Llega a Wien Hbf a las 12:49. Mirad el andén en el panel.",50.0832,14.4353,"walking","res"]]
+};
+const RIVER=[[50.062,14.4165],[50.068,14.4145],[50.0735,14.4125],[50.0785,14.4118],[50.0825,14.4128],[50.0865,14.4120],[50.0895,14.4138],[50.0925,14.4172],[50.0935,14.4232],[50.0928,14.4300],[50.0942,14.4370],[50.0985,14.4420],[50.1035,14.4400],[50.1065,14.4330]];
+const TAGS={mk:["Mercado","t-mk"],eu:["−50 %","t-eu"],res:["Reserva","t-res"],free:["Gratis","t-free"],opt:["Opcional","t-opt"]};
+const LS="praga-xmas-done-v1";
+let done={};try{done=JSON.parse(localStorage.getItem(LS)||"{}")}catch(e){}
+let db=null,docRef=null,cur=null;
+const $=id=>document.getElementById(id);
+const key=(d,i)=>d+"-"+i;
+const toMin=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const fmt=m=>{m=((m%1440)+1440)%1440;return Math.floor(m/60)+":"+String(m%60).padStart(2,"0")};
+function pragueNow(){
+  const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Prague",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+  const g=t=>p.find(x=>x.type===t).value;
+  return {date:`${g("year")}-${g("month")}-${g("day")}`,min:(+g("hour")%24)*60+ +g("minute")};
+}
+function nowFor(day){
+  const real=pragueNow();
+  if($("simon").checked) return {min:+$("simt").value,today:true,sim:true};
+  return {min:real.min,today:real.date===day.date,sim:false,real};
+}
+function gmaps(s){return `https://www.google.com/maps/dir/?api=1&destination=${s[3]},${s[4]}&travelmode=${s[5]}`}
+function gpin(s){return `https://www.google.com/maps/search/?api=1&query=${s[3]},${s[4]}`}
+function esc(t){return t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+function render(){
+  const day=DAYS.find(d=>d.id===cur), st=S[cur];
+  $("tabs").innerHTML=DAYS.map(d=>`<button class="tab ${d.id===cur?"on":""}" data-d="${d.id}"><b>${d.tab.split(" ")[1]}</b>${d.tab.split(" ")[0]}</button>`).join("");
+  const n=st.filter((s,i)=>done[key(cur,i)]).length;
+  $("bar").style.width=(100*n/st.length)+"%";
+  $("plab").textContent=`${day.title} · ${n}/${st.length} hechos`;
+  const nx=st.findIndex((s,i)=>!done[key(cur,i)]);
+  // NOW card
+  const t=nowFor(day);
+  let html="";
+  if(nx<0){html=`<div class="k">DÍA COMPLETADO 🎄</div><h2>¡Hecho todo!</h2><div class="meta">Buen trabajo. Mañana más.</div>`}
+  else{
+    const s=st[nx];const plan=toMin(s[0]);
+    let stt="";
+    if(t.today){
+      const diff=t.min-plan;
+      if(diff>10){
+        const opt=st.map((x,i)=>[x,i]).filter(([x,i])=>i>nx&&!done[key(cur,i)]&&x[6]==="opt").map(([x])=>x[1]);
+        stt=`<div class="status late">⏰ Vais ${diff} min tarde respecto al plan.${opt.length?` Si hace falta, os podéis saltar: ${opt.join(", ")}.`:" Recortad un poco en la parada actual."}</div>`;
+      } else if(diff<-20){stt=`<div class="status early">🕰️ Vais con margen: faltan ${-diff} min para la hora prevista (${s[0]}).</div>`}
+      else stt=`<div class="status ok">✅ Vais en hora. Previsto a las ${s[0]}.</div>`;
+    } else {
+      stt=`<div class="status info">📅 Este día es el ${day.date.split("-").reverse().slice(0,2).join("/")}. Activa «Probar la app» para simular la hora.</div>`;
+    }
+    const after=st.slice(nx+1).find((x,j)=>!done[key(cur,nx+1+j)]);
+    html=`<div class="k">AHORA OS VAIS A · ${s[0]}</div><h2>${esc(s[1])}</h2>
+      <div class="meta">${s[5]==="transit"?"🚋 Mejor en transporte público":"🚶 Se llega andando"}${after?` · Después: ${esc(after[1])} (${after[0]})`:""}</div>
+      ${stt}<div class="tips">${esc(s[2])}</div>
+      <div class="btns"><a class="btn go" href="${gmaps(s)}" target="_blank" rel="noopener">🧭 Cómo llegar</a>
+      <button class="btn done" data-tick="${nx}">✓ Hecho</button><button class="btn skip" data-tick="${nx}" title="Saltar">⏭</button></div>`;
+  }
+  $("now").innerHTML=html;
+  // MAP
+  $("maptitle").textContent="Mapa · "+day.tab;
+  drawMap(st,nx);
+  // LIST
+  $("list").innerHTML=st.map((s,i)=>{const d=done[key(cur,i)];const tg=s[6]?`<span class="tag ${TAGS[s[6]][1]}">${TAGS[s[6]][0]}</span>`:"";
+    return `<div class="st ${d?"done":""} ${i===nx?"next":""}" id="s${i}"><div><div class="tm">${s[0]}</div><span class="num">${i+1}</span></div>
+    <div><div class="tt">${esc(s[1])}${tg}</div><div class="nt">${esc(s[2])}</div>
+    <div class="row"><button class="chk" data-tick="${i}">${d?"✓ Visto "+d:"○ Marcar visto"}</button>
+    <a class="lnk" href="${gmaps(s)}" target="_blank" rel="noopener">🧭 Cómo llegar</a><a class="lnk" style="background:#eef1f6;color:#33405a" href="${gpin(s)}" target="_blank" rel="noopener">📍</a></div></div></div>`}).join("");
+}
+function mapSVG(st,nx){
+  const pts=st.map((s,i)=>({s,i})).filter(o=>!o.s[7]);
+  let la=pts.map(o=>o.s[3]),ln=pts.map(o=>o.s[4]);
+  let minLa=Math.min(...la),maxLa=Math.max(...la),minLn=Math.min(...ln),maxLn=Math.max(...ln);
+  const padLa=Math.max(.002,(maxLa-minLa)*.15),padLn=Math.max(.003,(maxLn-minLn)*.12);
+  minLa-=padLa;maxLa+=padLa;minLn-=padLn;maxLn+=padLn;
+  const k=Math.cos(50.08*Math.PI/180);
+  const W=600,wDeg=(maxLn-minLn)*k,hDeg=(maxLa-minLa);let H=Math.round(W*hDeg/wDeg);H=Math.max(300,Math.min(640,H));
+  const sx=W/((maxLn-minLn)),sy=H/(maxLa-minLa);
+  const P=(a,b)=>[((b-minLn)*sx).toFixed(1),((maxLa-a)*sy).toFixed(1)];
+  const river=RIVER.map(p=>P(p[0],p[1]).join(",")).join(" ");
+  const route=pts.map(o=>P(o.s[3],o.s[4]).join(",")).join(" ");
+  let g=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+  <defs><pattern id="pt" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#e2d6bd"/></pattern></defs>
+  <rect width="${W}" height="${H}" fill="url(#pt)"/>
+  <polyline points="${river}" fill="none" stroke="#9cc3dd" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+  <polyline points="${route}" fill="none" stroke="#a31f2b" stroke-width="3" stroke-dasharray="7 6" opacity=".7"/>`;
+  const seen={};
+  pts.forEach(o=>{const [x,y]=P(o.s[3],o.s[4]);const kk=x+","+y;const off=(seen[kk]=(seen[kk]||0)+1)-1;const X=+x+off*14,Y=+y-off*14;
+    const d=done[key(cur,o.i)],isN=o.i===nx;
+    const fill=d?"#b9b2a4":isN?"#e0b44e":"#0f3d2e";
+    g+=`<g data-go="${o.i}" style="cursor:pointer">${isN?`<circle class="pulse" cx="${X}" cy="${Y}" r="11" fill="#e0b44e" opacity=".45"/>`:""}
+    <circle cx="${X}" cy="${Y}" r="11" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
+    <text x="${X}" y="${Y+4}" text-anchor="middle" font-size="11" font-weight="800" fill="${isN?"#3a2800":"#fff"}" font-family="Montserrat">${d?"✓":o.i+1}</text></g>`;});
+  g+=`<text x="${W-10}" y="${H-10}" text-anchor="end" font-size="11" fill="#8a7b5c" font-family="Montserrat">N ↑ · Moldava en azul</text></svg>`;
+  return g;
+}
+async function save(){
+  try{localStorage.setItem(LS,JSON.stringify(done))}catch(e){}
+  if(docRef){try{await docRef.set({done,at:new Date().toISOString()});$("sync").textContent="sincronizado ✓"}catch(e){$("sync").textContent="guardado en este móvil"}}
+}
+function tick(i){const k=key(cur,i);if(done[k])delete done[k];else{const t=pragueNow();done[k]=fmt(t.min)}render();save()}
+document.addEventListener("click",e=>{
+  const tb=e.target.closest("[data-d]");if(tb){cur=tb.dataset.d;try{localStorage.setItem(LS+"-day",cur)}catch(_){ }render();window.scrollTo({top:0,behavior:"smooth"});return}
+  const tk=e.target.closest("[data-tick]");if(tk){tick(+tk.dataset.tick);return}
+  const go=e.target.closest("[data-go]");if(go){const el=$("s"+go.dataset.go);if(el)el.scrollIntoView({behavior:"smooth",block:"center"})}
+});
+$("reset").onclick=()=>{S[cur].forEach((s,i)=>delete done[key(cur,i)]);render();save()};
+$("simon").onchange=render;$("simt").oninput=()=>{$("simv").textContent=fmt(+$("simt").value);render()};
+function clock(){const t=pragueNow();$("clk").textContent=fmt(t.min);}
+// initial day: today if trip day, else remembered, else d1
+(function(){const t=pragueNow();const d=DAYS.find(x=>x.date===t.date);let r=null;try{r=localStorage.getItem(LS+"-day")}catch(e){}
+ cur=d?d.id:(r&&S[r]?r:"d1")})();
+clock();render();setInterval(()=>{clock();render()},30000);
+// snow
+(function(){const s=$("snow");for(let i=0;i<26;i++){const e=document.createElement("span");e.textContent="❄";e.style.left=Math.random()*100+"%";e.style.fontSize=(8+Math.random()*12)+"px";e.style.animationDuration=(9+Math.random()*12)+"s";e.style.animationDelay=(-Math.random()*20)+"s";s.appendChild(e)}})();
+// ---- real map (Leaflet) with fallback to schematic SVG ----
+let LM=null,LG=null,ME=null,myPos=null;
+function drawMap(st,nx){
+  if(!window.L){$("map").innerHTML=mapSVG(st,nx);$("mapnote").textContent="Sin conexión: mapa esquemático. Para la ruta exacta, «Cómo llegar».";return}
+  if(!LM){$("map").innerHTML='<div id="lmap"></div>';LM=L.map("lmap",{zoomControl:true});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(LM);LG=L.layerGroup().addTo(LM)}
+  LG.clearLayers();const ll=[];
+  st.forEach((s,i)=>{if(s[7])return;const d=done[key(cur,i)],isN=i===nx;
+    const bg=d?"#b9b2a4":isN?"#e0b44e":"#0f3d2e";
+    const ic=L.divIcon({className:"",html:`<div class="pin" style="background:${bg};color:${isN?"#3a2800":"#fff"}">${d?"✓":i+1}</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+    const m=L.marker([s[3],s[4]],{icon:ic,zIndexOffset:isN?1000:0}).addTo(LG);
+    m.bindPopup(`<b>${s[0]} · ${esc(s[1])}</b><br><a href="${gmaps(s)}" target="_blank">🧭 Cómo llegar</a>`);
+    m.on("click",()=>{const el=$("s"+i);if(el)el.scrollIntoView({behavior:"smooth",block:"center"})});
+    ll.push([s[3],s[4]]);});
+  if(ll.length>1)L.polyline(ll,{color:"#a31f2b",weight:3,dashArray:"7 7",opacity:.75}).addTo(LG);
+  if(!drawMap.fitted||drawMap.fitted!==cur){LM.fitBounds(ll,{padding:[30,30]});drawMap.fitted=cur}
+  if(myPos){if(!ME)ME=L.marker(myPos,{icon:L.divIcon({className:"",html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(LM);else ME.setLatLng(myPos)}
+}
+function dist(a,b){const R=6371000,r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r;const h=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function distInfo(){const st=S[cur];const nx=st.findIndex((s,i)=>!done[key(cur,i)]);if(!myPos||nx<0)return;
+  const s=st[nx];const m=dist(myPos,[s[3],s[4]]);const el=document.querySelector(".now .meta");if(!el)return;
+  const mins=Math.round(m/1.25/60);el.innerHTML+=` · 📏 a ${m<1000?Math.round(m/10)*10+" m":(m/1000).toFixed(1)+" km"} (~${mins} min a pie)`}
+const _render=render;render=function(){_render();distInfo()};
+if(navigator.geolocation){try{navigator.geolocation.watchPosition(p=>{myPos=[p.coords.latitude,p.coords.longitude];render()},()=>{}, {enableHighAccuracy:true,maximumAge:30000})}catch(e){}}
+render();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}</script>
+</body>
+</html>
