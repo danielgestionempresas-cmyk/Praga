@@ -75,6 +75,7 @@ svg{width:100%;height:auto;display:block;border-radius:12px;background:#f3ecdc}
 main,header{position:relative;z-index:1}
 @keyframes pulse{0%{r:11}50%{r:17}100%{r:11}}
 .pulse{animation:pulse 1.4s ease-in-out infinite}
+@media (display-mode: standalone){header{padding-top:max(54px,env(safe-area-inset-top))!important}}
 </style>
 </head>
 <body>
@@ -101,6 +102,7 @@ main,header{position:relative;z-index:1}
   <button class="reset" id="reset">Desmarcar todo el día</button>
 </main>
 <script>
+var LM=null,LG=null,ME=null,myPos=null;
 const DAYS=[
  {id:"d1",date:"2026-12-08",tab:"Mar 8",title:"Día 1 · Bienvenida navideña"},
  {id:"d2",date:"2026-12-09",tab:"Mié 9",title:"Día 2 · Ciudad Vieja y Vinohrady"},
@@ -216,7 +218,7 @@ function render(){
   $("now").innerHTML=html;
   // MAP
   $("maptitle").textContent="Mapa · "+day.tab;
-  drawMap(st,nx);
+  try{drawMap(st,nx)}catch(e){$("map").innerHTML=mapSVG(st,nx)}
   // LIST
   $("list").innerHTML=st.map((s,i)=>{const d=done[key(cur,i)];const tg=s[6]?`<span class="tag ${TAGS[s[6]][1]}">${TAGS[s[6]][0]}</span>`:"";
     return `<div class="st ${d?"done":""} ${i===nx?"next":""}" id="s${i}"><div><div class="tm">${s[0]}</div><span class="num">${i+1}</span></div>
@@ -271,7 +273,7 @@ clock();render();setInterval(()=>{clock();render()},30000);
 // snow
 (function(){const s=$("snow");for(let i=0;i<26;i++){const e=document.createElement("span");e.textContent="❄";e.style.left=Math.random()*100+"%";e.style.fontSize=(8+Math.random()*12)+"px";e.style.animationDuration=(9+Math.random()*12)+"s";e.style.animationDelay=(-Math.random()*20)+"s";s.appendChild(e)}})();
 // ---- real map (Leaflet) with fallback to schematic SVG ----
-let LM=null,LG=null,ME=null,myPos=null;
+
 function drawMap(st,nx){
   if(!window.L){$("map").innerHTML=mapSVG(st,nx);$("mapnote").textContent="Sin conexión: mapa esquemático. Para la ruta exacta, «Cómo llegar».";return}
   if(!LM){$("map").innerHTML='<div id="lmap"></div>';LM=L.map("lmap",{zoomControl:true});
@@ -299,3 +301,4 @@ render();
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}</script>
 </body>
 </html>
+
