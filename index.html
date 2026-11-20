@@ -99,6 +99,9 @@ main,header{position:relative;z-index:1}
 .bub b{color:var(--red)}#love{transition:opacity .3s}.bub b.fz{color:#2a6fa8}
 .bub:after{content:"";position:absolute;left:-7px;bottom:12px;border:7px solid transparent;border-right-color:#fff;border-left:0}
 @media (display-mode: standalone){header{padding-top:max(54px,env(safe-area-inset-top))!important}}
+
+.scene-thumb{display:block;width:100%;max-height:178px;aspect-ratio:16/9;object-fit:cover;object-position:center;border-radius:11px;margin:8px 0 5px;background:#f0e8d9}
+.now-scene{display:block;width:100%;max-height:230px;aspect-ratio:16/9;object-fit:cover;object-position:center;border-radius:13px;margin:10px 0 8px;background:#f0e8d9}
 </style>
 </head>
 <body>
@@ -304,6 +307,35 @@ function duoSay(day,st,nx,t){
   }
   return L(m)+loveLine();
 }
+
+// Una escena distinta para cada momento ilustrado del viaje.
+const SCENE_IMAGES={
+ "d1-0":"01_llegada_aeropuerto_praga.png",
+ "d1-1":"02_transporte_publico.png",
+ "d1-2":"03_primera_comida_checa.png",
+ "d1-3":"04_apartamento.png",
+ "d1-4":"05_caballo_invertido_lucerna.png",
+ "d1-5":"06_mercado_wenceslao.png",
+ "d1-7":"07_plaza_ciudad_vieja.png",
+ "d1-9":"08_puente_carlos_noche.png",
+ "d1-10":"09_cena_romantica.png",
+ "d2-1":"10_amanecer_puente_carlos.png",
+ "d2-2":"11_biblioteca_klementinum.png",
+ "d2-3":"12_torre_ayuntamiento.png",
+ "d2-5":"13_desayuno_checo.png",
+ "d2-7":"14_barrio_judio.png",
+ "d2-9":"15_grebovka_y_la_grotta.png",
+ "d3-2":"16_mirador_strahov.png",
+ "d3-4":"17_castillo_de_praga.png",
+ "d3-9":"18_muro_de_lennon.png",
+ "d3-11":"19_crucero_por_el_moldava.png",
+ "d4-3":"20_despedida_y_tren_a_viena.png"
+};
+function sceneImage(day,index,cls){
+ const src=SCENE_IMAGES[day+"-"+index];
+ return src?'<img class="'+cls+'" src="'+src+'" alt="Llamitas y Frosty: '+esc(S[day][index][1])+'" loading="lazy">':"";
+}
+
 function render(){
   const day=DAYS.find(d=>d.id===cur), st=S[cur];
   $("tabs").innerHTML=DAYS.map(d=>`<button class="tab ${d.id===cur?"on":""}" data-d="${d.id}"><b>${d.tab.split(" ")[1]}</b>${d.tab.split(" ")[0]}</button>`).join("");
@@ -329,7 +361,7 @@ function render(){
       stt=`<div class="status info">📅 Este día es el ${day.date.split("-").reverse().slice(0,2).join("/")}. Activa «Probar la app» para simular la hora.</div>`;
     }
     const after=st.slice(nx+1).find((x,j)=>!done[key(cur,nx+1+j)]);
-    html=`<div class="k">AHORA OS VAIS A · ${s[0]}</div><h2>${esc(s[1])}</h2>
+    html=`<div class="k">AHORA OS VAIS A · ${s[0]}</div><h2>${esc(s[1])}</h2>${sceneImage(cur,nx,"now-scene")}
       <div class="meta"><div class="ml">${s[5]==="transit"?"🚋 Mejor en transporte público":"🚶 Se llega andando"}<span id="mdist"></span></div>${after?`<div class="ml">⏭️ Después: ${eur(esc(after[1]))} · ${after[0]}</div>`:""}</div>
       ${stt}<div class="tips">${eur(esc(s[2]))}</div>
       <div class="btns"><a class="btn go" href="${gmaps(s)}" target="_blank" rel="noopener">🧭 Cómo llegar</a>
@@ -343,7 +375,7 @@ function render(){
   // LIST
   $("list").innerHTML=st.map((s,i)=>{const d=done[key(cur,i)];const tg=s[6]?`<span class="tag ${TAGS[s[6]][1]}">${TAGS[s[6]][0]}</span>`:"";
     return `<div class="st ${d?"done":""} ${i===nx?"next":""}" id="s${i}"><div><div class="tm">${s[0]}</div><span class="num">${i+1}</span></div>
-    <div><div class="tt">${esc(s[1])}${tg}</div><div class="nt">${eur(esc(s[2]))}</div>
+    <div><div class="tt">${esc(s[1])}${tg}</div>${sceneImage(cur,i,"scene-thumb")}<div class="nt">${eur(esc(s[2]))}</div>
     <div class="row"><button class="chk" data-tick="${i}">${d?"✓ Visto "+d:"○ Marcar visto"}</button>
     <a class="lnk" href="${gmaps(s)}" target="_blank" rel="noopener">🧭 Cómo llegar</a><a class="lnk" style="background:#eef1f6;color:#33405a" href="${gpin(s)}" target="_blank" rel="noopener">📍</a></div></div></div>`}).join("");
 }
