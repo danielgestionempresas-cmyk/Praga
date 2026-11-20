@@ -48,7 +48,7 @@ main{padding:14px 14px 90px;max-width:640px;margin:0 auto}
 #lmap{height:360px;border-radius:12px;z-index:1}
 .pin{width:26px;height:26px;border-radius:50%;color:#fff;font:800 12px Montserrat,sans-serif;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .me{width:16px;height:16px;border-radius:50%;background:#2a7de1;border:3px solid #fff;box-shadow:0 0 0 6px rgba(42,125,225,.25)}
-svg{width:100%;height:auto;display:block;border-radius:12px;background:#f3ecdc}
+#map>svg{width:100%;height:auto;display:block;border-radius:12px;background:#f3ecdc}
 .mapnote{font-size:11px;color:var(--muted);margin:6px 4px 0}
 .st{display:grid;grid-template-columns:52px 1fr;gap:10px;background:#fff;border-radius:14px;padding:11px 12px;margin-bottom:9px;box-shadow:0 2px 0 #eadfc8;position:relative;transition:opacity .3s}
 .st.done{opacity:.55}.st.done .tt{text-decoration:line-through}
@@ -97,12 +97,29 @@ main,header{position:relative;z-index:1}
   </details>
   <section class="now" id="now"></section>
   <section class="card"><h3 id="maptitle">Mapa del día</h3><div id="map"></div>
-    <div class="mapnote" id="mapnote">Números = orden del día · dorado = siguiente · punto azul = vosotros. Para la ruta exacta, «Cómo llegar».</div></section>
+    <div class="mapnote" id="mapnote">Números = orden del día · dorado = siguiente · punto azul = vosotros · línea roja = paseo a pie por las calles bonitas · azul discontinua = metro o tranvía.</div></section>
   <section id="list"></section>
   <button class="reset" id="reset">Desmarcar todo el día</button>
 </main>
 <script>
 var LM=null,LG=null,ME=null,myPos=null;
+// Paseos por calles bonitas: puntos de paso entre la parada anterior y esta
+var VIA={
+ "d1-5":[[50.0790,14.4262]],                       // Lucerna -> Wenceslao: plaza arriba
+ "d1-6":[[50.0857,14.4262],[50.0866,14.4278]],     // Wenceslao -> Republiky por Na Příkopě
+ "d1-7":[[50.0872,14.4255],[50.0874,14.4236]],     // Republiky -> Plaza por Celetná
+ "d1-8":[[50.0858,14.4208],[50.0848,14.4196]],     // Plaza -> Husova por Melantrichova
+ "d1-9":[[50.0859,14.4170],[50.0861,14.4145]],     // Husova -> puente por Karlova
+ "d2-1":[[50.0818,14.4185],[50.0828,14.4140]],     // Casa -> río por Národní
+ "d3-7":[[50.0882,14.4022]],                       // Opyš -> U Glaubiců (Escalera Vieja)
+ "d3-10":[[50.0866,14.4093],[50.0865,14.4114],[50.0882,14.4136],[50.0908,14.4157]], // Kampa -> puente -> orilla -> muelle
+ "d3-12":[[50.0905,14.4155],[50.0880,14.4136]],    // muelle -> farolero por la orilla
+ "d3-14":[[50.0890,14.4140],[50.0918,14.4160],[50.0938,14.4180]] // Klementinum -> orilla -> puente Čech -> Letná
+};
+var RK="praga-rutas-v1";var RC={};try{RC=JSON.parse(localStorage.getItem(RK)||"{}")}catch(e){}
+var routeBusy={},routeFail={};
+function legKey(d,i){return d+"-"+i}
+
 const DAYS=[
  {id:"d1",date:"2026-12-08",tab:"Mar 8",title:"Día 1 · Bienvenida navideña"},
  {id:"d2",date:"2026-12-09",tab:"Mié 9",title:"Día 2 · Ciudad Vieja y Vinohrady"},
@@ -277,6 +294,28 @@ clock();render();setInterval(()=>{clock();render()},30000);
 (function(){const s=$("snow");for(let i=0;i<26;i++){const e=document.createElement("span");e.textContent="❄";e.style.left=Math.random()*100+"%";e.style.fontSize=(8+Math.random()*12)+"px";e.style.animationDuration=(9+Math.random()*12)+"s";e.style.animationDelay=(-Math.random()*20)+"s";s.appendChild(e)}})();
 // ---- real map (Leaflet) with fallback to schematic SVG ----
 
+
+function drawRoutes(st){
+  let prev=null;
+  st.forEach((s,i)=>{if(s[7])return;
+    if(prev!==null){const a=st[prev],k=legKey(cur,i);
+      if(s[5]==="walking"){
+        if(RC[k])L.polyline(RC[k],{color:"#a31f2b",weight:5,opacity:.8}).addTo(LG);
+        else{L.polyline([[a[3],a[4]],[s[3],s[4]]],{color:"#a31f2b",weight:3,dashArray:"7 7",opacity:.6}).addTo(LG);fetchLeg(k,a,s)}
+      } else L.polyline([[a[3],a[4]],[s[3],s[4]]],{color:"#1f5fa3",weight:3,dashArray:"4 8",opacity:.7}).addTo(LG);
+    }
+    prev=i;});
+}
+function fetchLeg(k,a,s){
+  if(routeBusy[k]||(routeFail[k]&&Date.now()-routeFail[k]<300000))return;routeBusy[k]=1;
+  const pts=[[a[3],a[4]],...(VIA[k]||[]),[s[3],s[4]]].map(p=>p[1]+","+p[0]).join(";");
+  fetch("https://routing.openstreetmap.de/routed-foot/route/v1/driving/"+pts+"?overview=full&geometries=geojson")
+   .then(r=>r.json()).then(j=>{if(!j.routes||!j.routes[0]){routeFail[k]=Date.now();return}
+     RC[k]=j.routes[0].geometry.coordinates.map(c=>[+c[1].toFixed(5),+c[0].toFixed(5)]);
+     try{localStorage.setItem(RK,JSON.stringify(RC))}catch(e){}
+     clearTimeout(fetchLeg.t);fetchLeg.t=setTimeout(()=>{try{drawMap(S[cur],S[cur].findIndex((x,i)=>!done[key(cur,i)]))}catch(e){}},400);
+   }).catch(()=>{routeFail[k]=Date.now()}).finally(()=>{routeBusy[k]=0});
+}
 function drawMap(st,nx){
   if(!window.L){$("map").innerHTML=mapSVG(st,nx);$("mapnote").textContent="Sin conexión: mapa esquemático. Para la ruta exacta, «Cómo llegar».";return}
   if(!LM){$("map").innerHTML='<div id="lmap"></div>';LM=L.map("lmap",{zoomControl:true});
@@ -289,7 +328,7 @@ function drawMap(st,nx){
     m.bindPopup(`<b>${s[0]} · ${esc(s[1])}</b><br><a href="${gmaps(s)}" target="_blank">🧭 Cómo llegar</a>`);
     m.on("click",()=>{const el=$("s"+i);if(el)el.scrollIntoView({behavior:"smooth",block:"center"})});
     ll.push([s[3],s[4]]);});
-  if(ll.length>1)L.polyline(ll,{color:"#a31f2b",weight:3,dashArray:"7 7",opacity:.75}).addTo(LG);
+  drawRoutes(st);
   if(!drawMap.fitted||drawMap.fitted!==cur){LM.fitBounds(ll,{padding:[30,30]});drawMap.fitted=cur}
   if(myPos){if(!ME)ME=L.marker(myPos,{icon:L.divIcon({className:"",html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(LM);else ME.setLatLng(myPos)}
 }
@@ -304,5 +343,6 @@ render();
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}</script>
 </body>
 </html>
+
 
 
